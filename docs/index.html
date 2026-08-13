@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>decorrelate — are your verifiers actually independent?</title>
+<meta name="description" content="Three skeptics that share a model and a prompt are one check at 3x the price. decorrelate measures verifier correlation and puts a number on it: N_eff.">
+<meta property="og:title" content="decorrelate — are your verifiers actually independent?">
+<meta property="og:description" content="Three skeptics that share a model and a prompt are one check at 3x the price. decorrelate measures verifier correlation and puts a number on it: N_eff.">
+<meta property="og:type" content="website">
+<link rel="icon" href="assets/favicon.svg">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/brand.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+</head>
+<body>
+
+<header class="site-head">
+  <div class="wrap">
+    <a class="brand" href="https://unchained-labs.github.io/" aria-label="Unchained Labs">
+      <img src="assets/lockup-horizontal.svg" alt="Unchained Labs" style="height:22px">
+    </a>
+    <nav>
+      <a href="#number">The number</a>
+      <a href="#fix">The fix</a>
+      <a href="#verified">Verified</a>
+      <a href="https://github.com/Unchained-Labs/decorrelate">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<section class="hero">
+  <div class="wrap">
+    <p class="label">decorrelate</p>
+    <h1>Three verifiers agreed. You still only had one.</h1>
+    <p class="lead">Adding verifiers feels like buying confidence. If they share a model, a temperature and a prompt scaffold, they fail in the same direction — so &quot;3 of 3 agree&quot; can be one error counted three times, at triple the price.</p>
+    <ul class="badges">
+      <li class="badge warn">alpha</li>
+      <li class="badge up">49 tests passing</li>
+      <li class="badge up">verified vs published examples</li>
+      <li class="badge ">MIT</li>
+    </ul>
+    <div class="btn-row">
+      <a class="btn primary" href="https://www.npmjs.com/package/decorrelate">npm i -g decorrelate</a>
+      <a class="btn " href="https://github.com/Unchained-Labs/decorrelate">GitHub</a>
+    </div>
+  </div>
+</section>
+
+<section id="demo">
+  <div class="wrap">
+    <p class="label">The report</p>
+    <h2>What a redundant panel looks like</h2>
+    <pre class="term"><code><span class="p">$</span> <span class="c">decorrelate report runs.jsonl</span>
+
+  <span class="dim">verifiers</span>          3  skeptic-1, skeptic-2, skeptic-3
+  <span class="dim">findings</span>           40
+  <span class="dim">contested</span>          6  <span class="dim">findings where the panel split</span>
+
+  <span class="dim">mean pairwise φ</span>     0.803  <span class="er">redundant</span>
+  <span class="dim">Fleiss κ</span>           0.800  <span class="dim">observed 0.900 · chance 0.501</span>
+
+  N_eff              <span class="er">1.15</span> <span class="dim">of 3</span>
+                     █████████<span class="dim">░░░░░░░░░░░░░░░</span>
+
+  <span class="er">→</span> You are paying for 3 checks and getting 1.15. That is 2.6× the cost of the confidence you have.
+    <span class="dim">spent $0.48 on verification · roughly $0.30 of it bought no additional independence</span>
+
+  <span class="dim">pair                    φ      κ      agree  shared</span>
+  skeptic-1 ↔ skeptic-2    <span class="er">0.80</span>   0.80    90%      40  <span class="wa">← same model, same lens</span>
+  skeptic-2 ↔ skeptic-3    <span class="er">0.80</span>   0.80    90%      40  <span class="wa">← same model, same lens</span>
+  skeptic-1 ↔ skeptic-3    <span class="er">0.80</span>   0.80    90%      40  <span class="wa">← same model, same lens</span></code></pre>
+    <p class="narrow">The same 40 findings, the same $0.48, judged instead by three genuinely different questions on three different model families: <strong>N_eff 1.61 instead of 1.15</strong>, and 16 contested findings instead of 6. The contested count is the interesting one — those are the only findings where the votes actually did anything.</p>
+  </div>
+</section>
+
+<section id="number">
+  <div class="wrap">
+    <p class="label">The number</p>
+    <h2>N_eff — effective independent verifiers</h2>
+    <p class="narrow">This is Kish&#x27;s design effect, borrowed from survey sampling. If N raters were independent, the variance of their mean vote would be <code>p(1-p)/N</code>. When raters correlate with average intra-class correlation ρ, it is <code>p(1-p)/N · (1 + (N-1)ρ)</code>. That bracketed term is the factor by which correlation inflates your uncertainty, so dividing it out gives the number of independent raters that would have produced the same precision.</p>
+    <pre><code>N_eff = N / (1 + (N - 1) · ρ)</code></pre>
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th>ρ</th>
+          <th>3 verifiers give you</th>
+          <th>Reading</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td class="num">0.00</td>
+            <td class="num">3.00</td>
+            <td>genuinely independent</td>
+          </tr>
+          <tr>
+            <td class="num">0.40</td>
+            <td class="num">1.67</td>
+            <td>overlapping</td>
+          </tr>
+          <tr>
+            <td class="num">0.75</td>
+            <td class="num">1.20</td>
+            <td>one verifier wearing three hats</td>
+          </tr>
+          <tr>
+            <td class="num">1.00</td>
+            <td class="num">1.00</td>
+            <td>you have one verifier</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="narrow">ρ is estimated as the mean pairwise phi coefficient across your verifiers. Negative ρ is clamped to zero — anti-correlated verifiers are not <em>more</em> than independent in any useful sense, and reporting <code>N_eff &gt; N</code> would be sampling noise dressed up as a finding.</p>
+    <div class="note">
+      <p>Alongside it you get <strong>Fleiss&#x27; κ</strong> with its observed and expected components kept separate — high agreement plus high chance agreement means <em>everyone says yes to everything</em>, not <em>everyone is right</em> — and per-pair φ and Cohen&#x27;s κ, sorted worst first and flagged when a pair shares a model or a lens.</p>
+    </div>
+  </div>
+</section>
+
+<section id="verified">
+  <div class="wrap">
+    <p class="label">Verified</p>
+    <h2>The statistics are checked against somebody else&#x27;s numbers</h2>
+    <p class="narrow">A tool whose whole value is a number has to be right about the number. The test suite reproduces the canonical Fleiss worked example — 10 subjects, 14 raters, 5 categories — to three decimal places on all three published figures.</p>
+    <div class="grid three">
+      <div class="card stat">
+        <span class="fig accent">κ = 0.210</span>
+        <p class="muted">published, and reproduced</p>
+      </div>
+      <div class="card stat">
+        <span class="fig">0.378 / 0.213</span>
+        <p class="muted">observed and chance agreement, both matched</p>
+      </div>
+      <div class="card stat">
+        <span class="fig">49</span>
+        <p class="muted">tests, including every degenerate case</p>
+      </div>
+    </div>
+    <ul class="clean">
+      <li>Hand-computed 2×2 cases for Cohen&#x27;s κ and φ.</li>
+      <li>A rater with <strong>no variance</strong> — mathematically undefined correlation, reported as 0 and flagged as degenerate rather than emitted as NaN.</li>
+      <li>A panel where chance agreement is total — κ reported as 0 rather than NaN.</li>
+      <li>An <strong>unbalanced panel</strong> — rejected outright, because Fleiss requires a fixed rater count and quietly averaging over a ragged matrix would be a wrong answer that looks fine.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="fix">
+  <div class="wrap">
+    <p class="label">The fix</p>
+    <h2>Four interventions, in order of return</h2>
+    <div class="grid two">
+      <div class="card">
+        <h3>1 · Vary the lens</h3>
+        <p>Three different questions beat three identical ones, and it costs nothing. The lens banks are built to one constraint: no two lenses may be answerable by the same reasoning over the same lines.</p>
+      </div>
+      <div class="card">
+        <h3>2 · Vary the model</h3>
+        <p>Cross-family beats cross-version. Routing two lenses to two Opus versions shares far more prior than routing one to Opus and one to Sonnet, so assignment is round-robin across <em>families</em>, not ids.</p>
+      </div>
+      <div class="card">
+        <h3>3 · Prefer an oracle</h3>
+        <p>A test, a compiler, a linter, a reproduction script: deterministic, zero tokens, no shared priors. The planner marks which lenses have a deterministic equivalent — usually more than half.</p>
+      </div>
+      <div class="card">
+        <h3>4 · Asymmetric thresholds</h3>
+        <p>Unanimity plus an oracle for destructive findings; one vote for cheap-to-fix nits. Uniform verification is the most common way these systems get expensive without getting more correct.</p>
+      </div>
+    </div>
+    <pre class="term"><code><span class="p">$</span> <span class="c">decorrelate lenses security</span>
+
+  1. <span class="ac">authz</span>  <span class="dim">claude-opus-5</span>
+     Can a caller who should not reach this code path reach it? Name the caller and the path.
+     <span class="dim">catches: missing or wrong authorization, not input handling</span>
+     <span class="ok">oracle</span> <span class="dim">grep for the auth middleware/decorator on this route before asking a model</span>
+
+  2. <span class="ac">input</span>  <span class="dim">claude-sonnet-5</span>
+     Is any attacker-controlled value used here without validation or escaping? Quote the value and its sink.
+     <span class="dim">catches: injection and deserialization, independent of who is calling</span>
+     <span class="ok">oracle</span> <span class="dim">a taint-analysis pass or a targeted fuzz case</span>
+
+  3. <span class="ac">session</span>  <span class="dim">claude-haiku-4-5</span>
+     Is session or identity state read, trusted, or mutated without a freshness check?
+     <span class="dim">catches: stale-token and confused-deputy bugs the other two lenses do not look for</span>
+
+  <span class="dim">high / destructive     unanimous (3 of 3) plus an oracle where one exists</span>
+  <span class="dim">medium                 majority (2 of 3)</span>
+  <span class="dim">low / cheap to fix     1 of 3, or skip verification entirely</span></code></pre>
+    <p class="narrow">Domains: <code>security</code>, <code>correctness</code>, <code>performance</code>, <code>migration</code>, <code>research</code>, <code>generic</code>. The planner <strong>refuses to pad past the bank size</strong> rather than duplicating a question — inventing a fourth lens by rewording the third is the exact thing the report measures.</p>
+  </div>
+</section>
+
+<section id="limits">
+  <div class="wrap">
+    <p class="label">Limits</p>
+    <h2>What it does not do</h2>
+    <div class="note warn">
+      <p><strong>It does not judge whether your findings are correct.</strong> It measures verifier independence. A panel can be perfectly independent and uniformly wrong.</p>
+      <p><strong>ρ is estimated from your sample.</strong> With 5 findings the number is noise. The report states how many findings every verifier actually judged — treat fewer than about 20 as directional only.</p>
+      <p><strong>It needs recorded verdicts.</strong> For the static version — N structurally identical verifiers visible in the source — use <a href="https://github.com/Unchained-Labs/graphlint">graphlint</a>.</p>
+    </div>
+  </div>
+</section>
+
+<section id="family">
+  <div class="wrap">
+    <p class="label">The family</p>
+    <h2>One layer of a set</h2>
+    <div class="grid three">
+      <a class="card" href="https://github.com/Unchained-Labs/graphlint">
+        <h3>graphlint</h3>
+        <p>Lints the spec before it runs — barrier misuse, correlated verifiers in the source, non-terminating cycles.</p>
+      </a>
+      <a class="card" href="https://github.com/Unchained-Labs/preflight">
+        <h3>preflight</h3>
+        <p>Prices the spec and comments the predicted agent count and dollar cost on the PR.</p>
+      </a>
+      <a class="card" href="https://github.com/Unchained-Labs/workflow-hub">
+        <h3>workflow-hub</h3>
+        <p>Graph specs that lint clean out of the box.</p>
+      </a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <span>decorrelate · Unchained Labs</span>
+    <nav>
+      <a href="https://unchained-labs.github.io/">Org</a>
+      <a href="https://github.com/Unchained-Labs/decorrelate">Source</a>
+      <a href="https://unchained-labs.github.io/branding/">Brand</a>
+    </nav>
+  </div>
+</footer>
+
+</body>
+</html>

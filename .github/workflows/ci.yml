@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm build
+      - run: pnpm test
+
+  fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      # The two fixtures are the same size and cost and differ only in panel
+      # design. If the correlated one stops reporting a low N_eff, the estimator
+      # regressed — that is the assertion worth having in CI.
+      - name: the correlated panel reports a low N_eff
+        run: |
+          node dist/cli.js report test/fixtures/correlated.jsonl --format json > c.json
+          node -e "
+            const r = require('./c.json');
+            if (r.effectiveVerifiers > 1.5) throw new Error('expected N_eff <= 1.5, got ' + r.effectiveVerifiers);
+            if (r.meanPhi < 0.6) throw new Error('expected high phi, got ' + r.meanPhi);
+            console.log('ok  N_eff', r.effectiveVerifiers.toFixed(2), 'phi', r.meanPhi.toFixed(2));
+          "
+
+      - name: the diverse panel reports a higher N_eff
+        run: |
+          node dist/cli.js report test/fixtures/diverse.jsonl --format json > d.json
+          node -e "
+            const c = require('./c.json'), d = require('./d.json');
+            if (d.effectiveVerifiers <= c.effectiveVerifiers)
+              throw new Error('diverse panel should beat correlated: ' + d.effectiveVerifiers + ' vs ' + c.effectiveVerifiers);
+            console.log('ok  diverse', d.effectiveVerifiers.toFixed(2), '>', c.effectiveVerifiers.toFixed(2));
+          "
+
+      - name: --fail-below exits non-zero on a redundant panel
+        run: |
+          if node dist/cli.js report test/fixtures/correlated.jsonl --fail-below 2 > /dev/null; then
+            echo "::error::--fail-below did not fail on a panel with N_eff 1.15"
+            exit 1
+          fi
+
+      - name: every lens domain produces a distinct-key plan
+        run: |
+          for d in security correctness performance migration research generic; do
+            node dist/cli.js lenses "$d" --format json > /tmp/p.json
+            node -e "
+              const p = require('/tmp/p.json');
+              const keys = p.lenses.map(l => l.key);
+              if (new Set(keys).size !== keys.length) throw new Error('duplicate lens keys in ' + p.domain);
+              console.log('ok', p.domain, keys.join(','));
+            "
+          done
