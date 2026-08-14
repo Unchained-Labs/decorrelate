@@ -6,6 +6,11 @@
   <p><a href="https://unchained-labs.github.io/decorrelate/">Docs</a> · <a href="#the-number">The number</a> · <a href="#the-fix">The fix</a></p>
 </div>
 
+<div align="center">
+  <img src="docs/assets/demo.gif" width="760" alt="decorrelate terminal demo">
+  <br><sub>N_eff, Fleiss κ and per-pair correlation from a real verdict log. <a href="https://unchained-labs.github.io/decorrelate/">Full docs →</a></sub>
+</div>
+
 ---
 
 **Status: alpha.** The statistics are verified against published worked examples
